@@ -328,29 +328,42 @@ bool getLogicalSwitch(uint8_t idx)
           // set delay timer
           context.timerState = SWITCH_DELAY;
           context.timer = ls->delay;
+          TRACE("set delay");
         }
         
         if (context.timerState == SWITCH_DELAY) {
           if (context.timer) {
             result = false;   // return false while delay timer running
+            TRACE("holding delay");
           }
-          else {
+          else if (ls->duration)  {
             // set duration timer
             context.timerState = SWITCH_ENABLE;
             context.timer = ls->duration;
+            //result = true;
+            TRACE("set duration");
           }
         }
-        
-        if (context.timerState == SWITCH_ENABLE) {
-          result = (ls->duration==0 || context.timer>0); // return false after duration timer runs out
+#if REPEAT_LOGICAL_SWITCH_CYCLE        
+        if (context.timerState == SWITCH_ENABLE && context.timer == 0) {
+          //duration expired while condition still present, go to new delay/duration cycle
+          //this was behaviour of r2940
+          context.timerState = SWITCH_START;  
+          TRACE("breaking duration");
         }
-      }
-      else if (context.timerState == SWITCH_ENABLE && ls->duration > 0 && context.timer > 0) {
-        result = true;
+#endif //#if REPEAT_LOGICAL_SWITCH_CYCLE   
       }
       else {        
-        context.timerState = SWITCH_START;
-        context.timer = 0;
+        if (context.timerState == SWITCH_ENABLE && context.timer > 0) {
+          result = true;    //hold true until duration timer runs out
+          TRACE("holding duration");
+        }
+        else {
+          //reset
+          if (context.timerState != SWITCH_START) TRACE("reset");
+          context.timerState = SWITCH_START;
+          //context.timer = 0; //this line could be omitted
+        }
       }
     }
 #endif
