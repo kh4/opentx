@@ -97,6 +97,9 @@ uint8_t keyDown()
   return ~readKeys() & 0x7E ;
 }
 
+
+static uint32_t in_old=0;
+static uint8_t  in_count=0;
 /* TODO common to ARM */
 void readKeysAndTrims()
 {
@@ -104,9 +107,18 @@ void readKeysAndTrims()
 
   uint8_t enuk = KEY_MENU;
   uint32_t in = ~readKeys();
-  for (i = 1; i < 7; i++) {
-    keys[enuk].input(in & (1 << i), (EnumKeys) enuk);
-    ++enuk;
+  if (in_old == in) {
+    if (in_count>=3) {
+      for (i = 1; i < 7; i++) {
+	keys[enuk].input(in & (1 << i), (EnumKeys) enuk);
+	++enuk;
+      }
+    } else {
+      in_count++;
+    }
+  } else {
+    in_old=in;
+    in_count=0;
   }
 
   in = readTrims();
